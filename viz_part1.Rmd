@@ -3,3 +3,94 @@ title: "ggplot 1"
 output: github_document
 ---
 
+Load in a dataset that we'll use often.
+
+```{r}
+# Load packages
+library(tidyverse)
+library(ggridges)
+
+# Get data from NOAA and clean it up a bit
+weather_df = 
+  rnoaa::meteo_pull_monitors(
+    c("USW00094728", "USC00519397", "USS0023B17S"),
+    var = c("PRCP", "TMIN", "TMAX"), 
+    date_min = "2017-01-01",
+    date_max = "2017-12-31") %>%
+  mutate(
+    name = recode(
+      id, 
+      USW00094728 = "CentralPark_NY", 
+      USC00519397 = "Waikiki_HA",
+      USS0023B17S = "Waterhole_WA"),
+    tmin = tmin / 10,
+    tmax = tmax / 10) %>%
+  select(name, id, everything())
+
+weather_df
+
+```
+
+## Scatterplot
+
+tmax vs tmin
+
+```{r}
+ggp_tmax_tmin = 
+      weather_df %>% 
+      ggplot(aes(x = tmin, y = tmax)) + 
+      geom_point()
+
+ggp_tmax_tmin
+```
+
+## Let's fancy it up
+
+Add ... color? lines? other stuff?
+
+```{r}
+weather_df %>% 
+      ggplot(aes(x = tmin, y = tmax, color = name)) + 
+      geom_point(alpha = 0.3) +
+      geom_smooth(se = FALSE) + 
+      # First variable defines rows, second defines columns; do not want to separate rows, so use .
+      facet_grid(. ~ name)
+```
+
+Let's make one more scatterplot
+
+```{r}
+weather_df %>% 
+      ggplot(aes(x = date, y = tmax, size = prcp)) + 
+      geom_point(alpha = 0.3) + 
+      facet_grid(. ~ name) + 
+      geom_smooth(se = FALSE)
+```
+
+## Use data manipulation as part of this
+
+```{r}
+weather_df %>% 
+      filter(name == "CentralPark_NY") %>% 
+      mutate(
+            tmax = tmax*(9/5) + 32,
+            tmin = tmin*(9/5) + 32
+      ) %>% 
+      ggplot(aes(x = tmin, y = tmax)) +
+      geom_point()
+```
+
+## Stacking geoms
+
+Which geoms do you want?
+
+```{r}
+weather_df %>% 
+      ggplot(aes(x = date, y = tmax, color = name)) +
+      geom_smooth()
+
+weather_df %>% 
+      ggplot(aes(x = tmin, y = tmax)) +
+      geom_hex()
+```
+
