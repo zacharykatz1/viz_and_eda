@@ -10,6 +10,13 @@ Load in a dataset that we'll use often.
 library(tidyverse)
 library(ggridges)
 
+# Set global options for embedding plots
+knitr::opts_chunk$set(
+      fig.width = 6,
+      fig.asp = 0.6,
+      out.width = "90%"
+)
+
 # Get data from NOAA and clean it up a bit
 weather_df = 
   rnoaa::meteo_pull_monitors(
@@ -116,5 +123,29 @@ Still with `tmax` and `name`
 weather_df %>% 
       ggplot(aes(x = name, y = tmax)) + 
       geom_boxplot()
+```
+
+Some people like violin plots??? (Because doesn't just give you quantiles, but full distribution)
+
+```{r}
+weather_df %>% 
+      ggplot(aes(x = name, y = tmax)) + 
+      geom_violin()
+```
+
+What about ridges...
+
+```{r}
+weather_df %>% 
+      ggplot(aes(x = tmax, y = name)) + 
+      geom_density_ridges(alpha = 0.8, scale = 0.8)
+```
+
+## Embedding plots
+
+```{r, fig.width = 12}
+weather_df %>% 
+      ggplot(aes(x = tmin, y = tmax, color = name)) + 
+      geom_point(alpha = 0.3)
 ```
 
