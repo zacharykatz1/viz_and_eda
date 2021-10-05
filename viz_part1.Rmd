@@ -94,3 +94,27 @@ weather_df %>%
       geom_hex()
 ```
 
+## Univariate plots
+
+```{r}
+weather_df %>% 
+      ggplot(aes(x = tmax, fill = name)) + 
+      geom_histogram() + 
+      facet_grid(. ~ name)
+```
+
+Let's try some other plots...
+
+```{r}
+weather_df %>% ggplot(aes(x = tmax, fill = name)) + 
+      geom_density(alpha = 0.3)
+```
+
+Still with `tmax` and `name`
+
+```{r}
+weather_df %>% 
+      ggplot(aes(x = name, y = tmax)) + 
+      geom_boxplot()
+```
+
