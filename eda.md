@@ -236,3 +236,126 @@ weather_df %>%
 | CentralPark\_NY |    365 |      17.37 |
 | Waikiki\_HA     |    365 |      29.66 |
 | Waterhole\_WA   |    365 |       7.48 |
+
+## grouped `mutate`
+
+``` r
+# Adding a column to the data frame in a way that is group specific
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    centered_tmax = tmax - mean_tmax
+  ) %>% 
+  ggplot(aes(x = date, y = centered_tmax, color = name)) + 
+  geom_point() +
+  geom_smooth()
+```
+
+    ## `geom_smooth()` using method = 'loess' and formula 'y ~ x'
+
+    ## Warning: Removed 3 rows containing non-finite values (stat_smooth).
+
+    ## Warning: Removed 3 rows containing missing values (geom_point).
+
+<img src="eda_files/figure-gfm/unnamed-chunk-8-1.png" width="90%" />
+
+``` r
+# Coldest day in each place, use <2 or >2 because of ties
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    tmax_rank = min_rank(tmax)
+  ) %>% 
+  filter(tmax_rank < 2)
+```
+
+    ## # A tibble: 3 × 8
+    ## # Groups:   name [3]
+    ##   name           id          date        prcp  tmax  tmin month      tmax_rank
+    ##   <chr>          <chr>       <date>     <dbl> <dbl> <dbl> <date>         <int>
+    ## 1 CentralPark_NY USW00094728 2017-12-28     0  -7.7 -11.6 2017-12-01         1
+    ## 2 Waikiki_HA     USC00519397 2017-12-21    18  21.7  18.3 2017-12-01         1
+    ## 3 Waterhole_WA   USS0023B17S 2017-01-02    25 -10.5 -12.4 2017-01-01         1
+
+``` r
+# Warmest day in each place, use <2 or >2 because of ties
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    tmax_rank = min_rank(desc(tmax))
+  ) %>% 
+  filter(tmax_rank < 2)
+```
+
+    ## # A tibble: 4 × 8
+    ## # Groups:   name [3]
+    ##   name           id          date        prcp  tmax  tmin month      tmax_rank
+    ##   <chr>          <chr>       <date>     <dbl> <dbl> <dbl> <date>         <int>
+    ## 1 CentralPark_NY USW00094728 2017-06-13     0  34.4  25   2017-06-01         1
+    ## 2 CentralPark_NY USW00094728 2017-07-20     3  34.4  25   2017-07-01         1
+    ## 3 Waikiki_HA     USC00519397 2017-07-12     0  33.3  24.4 2017-07-01         1
+    ## 4 Waterhole_WA   USS0023B17S 2017-08-03     0  26.4  13.3 2017-08-01         1
+
+Note that different functions deal with ties in different ways.
+
+Lagged variables:
+
+``` r
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    # What is the tmax observation I had the day before?
+    # To construct lag information, you should have the grouping structure in place, otherwise will inadvertently put things in the wrong order
+    # Order that the dataframe is in makes a difference (e.g. dates arranged as they need to be for `lag`)
+    lagged_tmax = lag(tmax, n = 1),
+    tmax_diff = tmax - lagged_tmax
+  ) %>% 
+  summarize(diff_sd = sd(tmax_diff, na.rm = TRUE))
+```
+
+    ## # A tibble: 3 × 2
+    ##   name           diff_sd
+    ##   <chr>            <dbl>
+    ## 1 CentralPark_NY    4.45
+    ## 2 Waikiki_HA        1.23
+    ## 3 Waterhole_WA      3.13
+
+## Limitations
+
+What if my “summary” is a linear model …
+
+``` r
+weather_df %>% 
+  group_by(name) %>% 
+  summarize(cor_tmin_tmax = cor(tmin, tmax, use = "complete"))
+```
+
+    ## # A tibble: 3 × 2
+    ##   name           cor_tmin_tmax
+    ##   <chr>                  <dbl>
+    ## 1 CentralPark_NY         0.955
+    ## 2 Waikiki_HA             0.638
+    ## 3 Waterhole_WA           0.939
+
+``` r
+weather_df %>% 
+  # Cannot replace this with group_by and then try to run linear models on each place, since in one data frame
+  filter(name == "CentralPark_NY") %>% 
+  lm(tmax ~ tmin, data = .)
+```
+
+    ## 
+    ## Call:
+    ## lm(formula = tmax ~ tmin, data = .)
+    ## 
+    ## Coefficients:
+    ## (Intercept)         tmin  
+    ##       7.209        1.039
+
+``` r
+# This doesn't work because lm must be a vector, not an lm object
+weather_df %>% 
+  group_by(name) %>% 
+  summarize(lm = lm(tmax ~ tmin))
+```

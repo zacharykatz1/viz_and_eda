@@ -116,5 +116,77 @@ weather_df %>%
   knitr::kable(digits = 2)
 ```
 
+## grouped `mutate`
+
+```{r}
+# Adding a column to the data frame in a way that is group specific
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    mean_tmax = mean(tmax, na.rm = TRUE),
+    centered_tmax = tmax - mean_tmax
+  ) %>% 
+  ggplot(aes(x = date, y = centered_tmax, color = name)) + 
+  geom_point() +
+  geom_smooth()
+```
+
+
+```{r}
+# Coldest day in each place, use <2 or >2 because of ties
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    tmax_rank = min_rank(tmax)
+  ) %>% 
+  filter(tmax_rank < 2)
+
+# Warmest day in each place, use <2 or >2 because of ties
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    tmax_rank = min_rank(desc(tmax))
+  ) %>% 
+  filter(tmax_rank < 2)
+```
+
+Note that different functions deal with ties in different ways.
+
+Lagged variables:
+
+```{r}
+weather_df %>% 
+  group_by(name) %>% 
+  mutate(
+    # What is the tmax observation I had the day before?
+    # To construct lag information, you should have the grouping structure in place, otherwise will inadvertently put things in the wrong order
+    # Order that the dataframe is in makes a difference (e.g. dates arranged as they need to be for `lag`)
+    lagged_tmax = lag(tmax, n = 1),
+    tmax_diff = tmax - lagged_tmax
+  ) %>% 
+  summarize(diff_sd = sd(tmax_diff, na.rm = TRUE))
+```
+
+## Limitations
+
+What if my "summary" is a linear model ...
+
+```{r}
+weather_df %>% 
+  group_by(name) %>% 
+  summarize(cor_tmin_tmax = cor(tmin, tmax, use = "complete"))
+
+weather_df %>% 
+  # Cannot replace this with group_by and then try to run linear models on each place, since in one data frame
+  filter(name == "CentralPark_NY") %>% 
+  lm(tmax ~ tmin, data = .)
+```
+
+```{r eval = FALSE}
+# This doesn't work because lm must be a vector, not an lm object
+weather_df %>% 
+  group_by(name) %>% 
+  summarize(lm = lm(tmax ~ tmin))
+```
 
 
