@@ -143,6 +143,12 @@ Note, `sample_n` could to have in back pocket if you know trying to plot everyth
 pal = colorNumeric("viridis", NULL)
 
 nyc_airbnb %>% 
+  mutate(
+    labels = str_c("<b>Price:", price, "</b<br>Stars:", "stars")
+  )
+
+# Couldn't get labels to work, but will try again later
+nyc_airbnb %>% 
   filter(price < 500) %>% 
   sample_n(1000) %>% 
   leaflet() %>% 
